@@ -1,4 +1,4 @@
-package bg.sofia.uni.fmi.mjt.bookmarks.manager.Models;
+package bg.sofia.uni.fmi.mjt.bookmarks.manager.models;
 
 /**
  * BookmarksGroup

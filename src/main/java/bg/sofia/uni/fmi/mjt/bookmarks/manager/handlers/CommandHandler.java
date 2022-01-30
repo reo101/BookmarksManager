@@ -1,4 +1,4 @@
-package bg.sofia.uni.fmi.mjt.bookmarks.manager.Handlers;
+package bg.sofia.uni.fmi.mjt.bookmarks.manager.handlers;
 
 /**
  * CommandHandler
