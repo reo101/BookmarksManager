@@ -20,6 +20,7 @@ public class Command {
         // @formatter:off
         REGISTER           ("^register\s(\\w+)\s(\\w+)$"),
         LOGIN              ("^login\s(\\w+)\s(\\w+)$"),
+        LOGOUT             ("^logout$"),
         NEW_GROUP          ("^new-group\s(\\w+)$"),
         ADD_TO             ("^add-to\s(\\w+)\s(URL)(?:\s(--shorten))?$"),
         REMOVE_FROM        ("^remove-from\s(\\w+)\s(URL)$"),

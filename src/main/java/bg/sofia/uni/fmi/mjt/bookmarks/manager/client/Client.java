@@ -9,11 +9,14 @@ import java.util.Scanner;
 
 import com.google.gson.Gson;
 
+import bg.sofia.uni.fmi.mjt.bookmarks.manager.command.RequestHandler;
+import bg.sofia.uni.fmi.mjt.bookmarks.manager.command.requests.Request;
+import bg.sofia.uni.fmi.mjt.bookmarks.manager.exceptions.CommandParseException;
+
 /**
  * Client
  */
 public class Client {
-
     private static final int SERVER_PORT = 62555;
 
     private static final Gson GSON = new Gson();
@@ -27,18 +30,32 @@ public class Client {
 
             System.out.println("Connected to the server.");
 
+            String command;
+            Request request;
+            String requestJson;
+            String response;
+
             while (true) {
                 System.out.print("Enter message: ");
-                String message = scanner.nextLine();
+                command = scanner.nextLine();
 
-                System.out.println("Sending message <" + message + "> to the server...");
+                System.out.println("Sending message <" + command + "> to the server...");
 
-                writer.println(message);
+                try {
+                    request = RequestHandler.parseCommand(command);
+                } catch (CommandParseException e) {
+                    System.out.println(e.toString());
+                    continue;
+                }
 
-                String reply = reader.readLine();
-                System.out.println("The server replied <" + reply + ">");
+                requestJson = GSON.toJson(request);
 
-                if ("disconnect".equals(message)) {
+                writer.println(requestJson);
+
+                response = reader.readLine();
+                System.out.println("The server replied <" + response + ">");
+
+                if ("disconnect".equals(command)) {
                     break;
                 }
             }
