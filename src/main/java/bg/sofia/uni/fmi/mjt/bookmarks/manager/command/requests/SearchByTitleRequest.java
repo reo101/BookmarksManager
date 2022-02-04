@@ -3,16 +3,16 @@ package bg.sofia.uni.fmi.mjt.bookmarks.manager.command.requests;
 import com.google.gson.annotations.SerializedName;
 
 public final class SearchByTitleRequest extends Request {
-    @SerializedName("groupName")
-    private String groupName;
+    @SerializedName("title")
+    private String title;
 
-    public SearchByTitleRequest(String groupName) {
+    public SearchByTitleRequest(String title) {
         this.type = "SEARCH_BY_TITLE";
 
-        this.groupName = groupName;
+        this.title = title;
     }
 
-    public String getGroupName() {
-        return groupName;
+    public String getTitle() {
+        return title;
     }
 }

@@ -12,6 +12,7 @@ import com.google.gson.Gson;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.command.RequestHandler;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.command.requests.Request;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.exceptions.CommandParseException;
+import bg.sofia.uni.fmi.mjt.bookmarks.manager.utilities.Utilities;
 
 /**
  * Client
@@ -24,9 +25,9 @@ public class Client {
     public static void main(String[] args) {
 
         try (Socket socket = new Socket("localhost", SERVER_PORT);
-             PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
-             BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-             Scanner scanner = new Scanner(System.in)) {
+                PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
+                BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                Scanner scanner = new Scanner(System.in)) {
 
             System.out.println("Connected to the server.");
 
@@ -39,7 +40,9 @@ public class Client {
                 System.out.print("Enter message: ");
                 command = scanner.nextLine();
 
-                System.out.println("Sending message <" + command + "> to the server...");
+                if ("disconnect".equals(command)) {
+                    break;
+                }
 
                 try {
                     request = RequestHandler.parseCommand(command);
@@ -52,12 +55,12 @@ public class Client {
 
                 writer.println(requestJson);
 
-                response = reader.readLine();
-                System.out.println("The server replied <" + response + ">");
-
-                if ("disconnect".equals(command)) {
-                    break;
-                }
+                // Using a newline placeholder to preserve newlines while still using readLine()
+                response = reader.readLine().replaceAll(Utilities.NEWLINE_PLACEHOLDER, System.lineSeparator());
+                System.out.printf("The server replied:%s%s%s",
+                        System.lineSeparator(),
+                        response,
+                        System.lineSeparator());
             }
 
         } catch (IOException e) {

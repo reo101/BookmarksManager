@@ -1,11 +1,17 @@
 package bg.sofia.uni.fmi.mjt.bookmarks.manager.command;
 
+import java.util.Arrays;
+import java.util.Set;
 import java.util.regex.Matcher;
+import java.util.stream.Collectors;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import org.jsoup.select.Collector;
+
+import bg.sofia.uni.fmi.mjt.bookmarks.manager.bookmarks.Bookmark;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.command.Command.Type;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.command.requests.AddToRequest;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.command.requests.CleanupRequest;
@@ -23,13 +29,16 @@ import bg.sofia.uni.fmi.mjt.bookmarks.manager.command.requests.SearchByTitleRequ
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.exceptions.CommandParseException;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.exceptions.DuplicateGroupException;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.exceptions.DuplicateUserException;
+import bg.sofia.uni.fmi.mjt.bookmarks.manager.exceptions.NoSuchGroupException;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.exceptions.ResponseParseException;
+import bg.sofia.uni.fmi.mjt.bookmarks.manager.exceptions.WebpageFetchException;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.exceptions.NoSuchUserException;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.exceptions.WrongPasswordException;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.server.ClientRequestHandler;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.user.DefaultUser;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.user.User;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.user.UserManager;
+import bg.sofia.uni.fmi.mjt.bookmarks.manager.utilities.Utilities;
 
 /**
  * RequestHandler
@@ -42,9 +51,10 @@ public class RequestHandler {
         Type type = Type.of(input);
         Matcher matcher = type.getMatcher(input);
 
-        matcher.find();
+        if (!matcher.find()) {
+            throw new CommandParseException("Couldn't parse arguments to command");
+        }
 
-        // TODO: parseCommand
         return switch (type) {
             case REGISTER -> {
                 String username = matcher.group(1);
@@ -62,31 +72,49 @@ public class RequestHandler {
                 yield new LogoutRequest();
             }
             case NEW_GROUP -> {
-                yield new ListRequest();
+                String groupName = matcher.group(1);
+
+                yield new NewGroupRequest(groupName);
             }
             case ADD_TO -> {
-                yield new ListRequest();
+                String groupName = matcher.group(1);
+                String url = matcher.group(2);
+                boolean shorten = matcher.group(3) != null;
+
+                yield new AddToRequest(groupName, url, shorten);
             }
             case REMOVE_FROM -> {
-                yield new ListRequest();
+                String groupName = matcher.group(1);
+                String url = matcher.group(2);
+
+                yield new RemoveFromRequest(groupName, url);
             }
             case LIST -> {
                 yield new ListRequest();
             }
             case LIST_BY_GROUP -> {
-                yield new ListRequest();
+                String groupName = matcher.group(1);
+
+                yield new ListByGroupRequest(groupName);
             }
             case SEARCH_BY_TAGS -> {
-                yield new ListRequest();
+                Set<String> tags = Arrays.stream(
+                        matcher.group(1)
+                                .split("\s"))
+                        .collect(Collectors.toSet());
+
+                yield new SearchByTagsRequest(tags);
             }
             case SEARCH_BY_TITLE -> {
-                yield new ListRequest();
+                String title = matcher.group(1);
+
+                yield new SearchByTitleRequest(title);
             }
             case CLEANUP -> {
-                yield new ListRequest();
+                yield new CleanupRequest();
             }
             case IMPORT_FROM_CHROME -> {
-                yield new ListRequest();
+                yield new ImportFromChromeRequest();
             }
         };
     }
@@ -120,7 +148,6 @@ public class RequestHandler {
         User user = clientRequestHandler.getUser();
         UserManager userManager = clientRequestHandler.getUserManager();
 
-        // TODO: executeRequest
         return switch (request) {
             case RegisterRequest registerRequest -> {
                 // Already logged in
@@ -175,14 +202,15 @@ public class RequestHandler {
                 yield "Success, you've logged out";
             }
             case NewGroupRequest newGroupRequest -> {
+                // Not logged in
                 if (user == null) {
-                    yield "Cannot add group, you need to login first";
-
+                    yield "Cannot add group, you need to log in first";
                 }
 
                 try {
                     userManager.getUserBookmarksStorage(user)
-                            .addGroup(newGroupRequest.getGroupName());
+                            .addGroup(
+                                    newGroupRequest.getGroupName());
                 } catch (NoSuchUserException | DuplicateGroupException e) {
                     yield e.toString();
                 }
@@ -192,28 +220,155 @@ public class RequestHandler {
                         newGroupRequest.getGroupName());
             }
             case AddToRequest addToRequest -> {
-                yield "Kek";
+                // Not logged in
+                if (user == null) {
+                    yield "Cannot add a bookmark, you need to log in first";
+                }
+
+                try {
+                    userManager.getUserBookmarksStorage(user)
+                            .addBookmark(
+                                    addToRequest.getGroupName(),
+                                    addToRequest.getUrl(),
+                                    addToRequest.isShorten());
+                } catch (NoSuchUserException | WebpageFetchException e) {
+                    yield e.toString();
+                }
+
+                yield String.format(
+                        "Success. A bookmark with the URL '%s' was added in the %s group",
+                        addToRequest.getUrl(), addToRequest.getGroupName());
             }
             case RemoveFromRequest removeFromRequest -> {
-                yield "Kek";
+                // Not logged in
+                if (user == null) {
+                    yield "Cannot remove a bookmark, you need to log in first";
+                }
+
+                try {
+                    userManager.getUserBookmarksStorage(user)
+                            .removeBookmark(
+                                    removeFromRequest.getGroupName(),
+                                    removeFromRequest.getUrl());
+                } catch (NoSuchUserException | NoSuchGroupException e) {
+                    yield e.toString();
+                }
+
+                yield String.format(
+                        "Success. The bookmark with URL '%s' was removed from the %s group",
+                        removeFromRequest.getUrl(), removeFromRequest.getGroupName());
             }
             case ListRequest listRequest -> {
-                yield "Kek";
+                // Not logged in
+                if (user == null) {
+                    yield "Cannot list all bookmarks, you need to log in first";
+                }
+
+                String bookmarks;
+
+                try {
+                    bookmarks = userManager.getUserBookmarksStorage(user)
+                            .listBookmarks()
+                            .stream()
+                            .map(Bookmark::toString)
+                            .collect(Collectors.joining(
+                                    System.lineSeparator()));
+                } catch (NoSuchUserException e) {
+                    yield e.toString();
+                }
+
+                yield String.format("Here is the list of all bookmarks:%s%s",
+                        System.lineSeparator(),
+                        bookmarks)
+                        .replaceAll(System.lineSeparator(), Utilities.NEWLINE_PLACEHOLDER);
             }
             case ListByGroupRequest listByGroupRequest -> {
-                yield "Kek";
+                // Not logged in
+                if (user == null) {
+                    yield "Cannot list bookmarks by group, you need to log in first";
+                }
+
+                String bookmarks;
+
+                try {
+                    bookmarks = userManager.getUserBookmarksStorage(user)
+                            .listBookmarksByGroup(listByGroupRequest.getGroupName())
+                            .stream()
+                            .map(Bookmark::toString)
+                            .collect(Collectors.joining(
+                                    System.lineSeparator()));
+                } catch (NoSuchUserException e) {
+                    yield e.toString();
+                }
+
+                yield String.format("Here is the list of the selected bookmarks:%s%s",
+                        System.lineSeparator(),
+                        bookmarks)
+                        .replaceAll(System.lineSeparator(), "GAGURI");
             }
             case SearchByTagsRequest searchByTagsRequest -> {
-                yield "Kek";
+                // Not logged in
+                if (user == null) {
+                    yield "Cannot search bookmarks by tags, you need to log in first";
+                }
+
+                String urls;
+
+                try {
+                    urls = userManager.getUserBookmarksStorage(user)
+                            .searchByTags(searchByTagsRequest.getTags())
+                            .stream()
+                            .collect(Collectors.joining(
+                                    System.lineSeparator()));
+                } catch (NoSuchUserException e) {
+                    yield e.toString();
+                }
+
+                yield String.format("Here is the list of the selected bookmarks:%s%s",
+                        System.lineSeparator(),
+                        urls);
             }
             case SearchByTitleRequest searchByTitleRequest -> {
-                yield "Kek";
+                // Not logged in
+                if (user == null) {
+                    yield "Cannot search bookmarks by title, you need to log in first";
+                }
+
+                String urls;
+
+                try {
+                    urls = userManager.getUserBookmarksStorage(user)
+                            .searchByTitle(searchByTitleRequest.getTitle())
+                            .stream()
+                            .collect(Collectors.joining(
+                                    System.lineSeparator()));
+                } catch (NoSuchUserException e) {
+                    yield e.toString();
+                }
+
+                yield String.format("Here is the list of the URLs of the selected bookmarks:%s%s",
+                        System.lineSeparator(),
+                        urls);
             }
             case CleanupRequest cleanupRequest -> {
-                yield "Kek";
+                // Not logged in
+                if (user == null) {
+                    yield "Cannot issue a cleanup, you need to log in first";
+                }
+
+                // TODO: cleanupRequest
+
+                yield "Not yet implemented";
             }
             case ImportFromChromeRequest importFromChromeRequest -> {
-                yield "Kek";
+                // Not logged in
+                if (user == null) {
+                    yield "Cannot issue importing from chrome, you need to log in first";
+                }
+
+                // TODO: importFromChromeRequest
+
+                yield "Not yet implemented";
             }
             default -> throw new IllegalStateException("Unexpected value: " + request);
         };

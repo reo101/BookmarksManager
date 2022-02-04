@@ -1,18 +1,21 @@
 package bg.sofia.uni.fmi.mjt.bookmarks.manager.command.requests;
 
+import java.util.Collection;
+import java.util.Collections;
+
 import com.google.gson.annotations.SerializedName;
 
 public final class SearchByTagsRequest extends Request {
-    @SerializedName("groupName")
-    private String groupName;
+    @SerializedName("tags")
+    private Collection<String> tags;
 
-    public SearchByTagsRequest(String groupName) {
+    public SearchByTagsRequest(Collection<String> tags) {
         this.type = "SEARCH_BY_TAGS";
 
-        this.groupName = groupName;
+        this.tags = tags;
     }
 
-    public String getGroupName() {
-        return groupName;
+    public Collection<String> getTags() {
+        return Collections.unmodifiableCollection(this.tags);
     }
 }

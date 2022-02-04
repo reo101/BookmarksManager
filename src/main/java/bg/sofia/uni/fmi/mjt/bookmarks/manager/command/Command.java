@@ -12,9 +12,7 @@ import bg.sofia.uni.fmi.mjt.bookmarks.manager.exceptions.CommandParseException;
  */
 public class Command {
     // TODO: this VV
-    private static String urlRegex = ((Supplier<String>) (() -> {
-        return "https?://[-a-zA-Z0-9+&@#/%?=~_|!:,.;]*[-a-zA-Z0-9+&@#/%=~_|]";
-    })).get();
+    private static String urlRegex = "https?://[-a-zA-Z0-9+&@#/%?=~_|!:,.;]*[-a-zA-Z0-9+&@#/%=~_|]";
 
     public static enum Type {
         // @formatter:off
@@ -26,7 +24,7 @@ public class Command {
         REMOVE_FROM        ("^remove-from\s(\\w+)\s(URL)$"),
         LIST               ("^list$"),
         LIST_BY_GROUP      ("^list\s--group-name\s(\\w+)$"),
-        SEARCH_BY_TAGS     ("^search\s--tags((?:\s\\w)+)$"),
+        SEARCH_BY_TAGS     ("^search\s--tags\s(\\w+(?:\s\\w+)+)$"),
         SEARCH_BY_TITLE    ("^search\s--title\s(\\w+)$"),
         CLEANUP            ("^cleanup$"),
         IMPORT_FROM_CHROME ("^import-from-chrome$");
