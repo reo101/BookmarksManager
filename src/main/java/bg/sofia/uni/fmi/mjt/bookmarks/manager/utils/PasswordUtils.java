@@ -13,8 +13,7 @@ import javax.crypto.spec.PBEKeySpec;
  * PasswordUtils
  */
 public class PasswordUtils {
-    // public static final String HARDCODED_SALT = "EqdmPh53c9x33EygXpTpcoJvc4VXLK";
-    public static final String HARDCODED_SALT = "GAGURI727";
+    public static final int SALT_SIZE = 30;
 
     private static final Random RANDOM = new SecureRandom();
     private static final String ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";

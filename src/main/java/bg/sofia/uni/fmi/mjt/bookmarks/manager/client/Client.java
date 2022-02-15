@@ -41,13 +41,14 @@ public class Client {
                 command = scanner.nextLine();
 
                 if ("disconnect".equals(command)) {
+                    System.out.println("Disconnected");
                     break;
                 }
 
                 try {
                     request = RequestHandler.parseCommand(command);
                 } catch (CommandParseException e) {
-                    System.out.println(e.toString());
+                    System.out.println("Couldn't parse command");
                     continue;
                 }
 
@@ -57,7 +58,7 @@ public class Client {
 
                 // Using a newline placeholder to preserve newlines while still using readLine()
                 response = reader.readLine().replaceAll(Utilities.NEWLINE_PLACEHOLDER, System.lineSeparator());
-                System.out.printf("The server replied:%s%s%s",
+                System.out.printf("Server replied:%s%s%s",
                         System.lineSeparator(),
                         response,
                         System.lineSeparator());

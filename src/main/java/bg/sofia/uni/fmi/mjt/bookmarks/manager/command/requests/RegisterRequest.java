@@ -16,8 +16,7 @@ public final class RegisterRequest extends Request {
         this.type = "REGISTER";
 
         this.username = username;
-        // this.salt = PasswordUtils.getSalt(30); // FIXME: magic number
-        this.salt = PasswordUtils.HARDCODED_SALT;
+        this.salt = PasswordUtils.getSalt(PasswordUtils.SALT_SIZE);
         this.hashedPassword = PasswordUtils.generateSecurePassword(password, salt);
     }
 

@@ -4,14 +4,21 @@ import java.util.Collection;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import com.google.gson.annotations.Expose;
+
 import static bg.sofia.uni.fmi.mjt.bookmarks.manager.utilities.Utilities.ANSI.*;
 
 /**
  * Bookmark
  */
 public class Bookmark {
+    @Expose
     private String title;
+
+    @Expose
     private String url;
+
+    @Expose
     private Collection<String> tags;
 
     public Bookmark(String name, String url, Collection<String> tags) {

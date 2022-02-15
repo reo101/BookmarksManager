@@ -1,5 +1,6 @@
 package bg.sofia.uni.fmi.mjt.bookmarks.manager.command;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -8,8 +9,6 @@ import java.util.stream.Collectors;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-
-import org.jsoup.select.Collector;
 
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.bookmarks.Bookmark;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.command.Command.Type;
@@ -26,6 +25,8 @@ import bg.sofia.uni.fmi.mjt.bookmarks.manager.command.requests.RemoveFromRequest
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.command.requests.Request;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.command.requests.SearchByTagsRequest;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.command.requests.SearchByTitleRequest;
+import bg.sofia.uni.fmi.mjt.bookmarks.manager.command.requests.ShutdownRequest;
+import bg.sofia.uni.fmi.mjt.bookmarks.manager.exceptions.BitlyException;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.exceptions.CommandParseException;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.exceptions.DuplicateGroupException;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.exceptions.DuplicateUserException;
@@ -35,7 +36,6 @@ import bg.sofia.uni.fmi.mjt.bookmarks.manager.exceptions.WebpageFetchException;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.exceptions.NoSuchUserException;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.exceptions.WrongPasswordException;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.server.ClientRequestHandler;
-import bg.sofia.uni.fmi.mjt.bookmarks.manager.user.DefaultUser;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.user.User;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.user.UserManager;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.utilities.Utilities;
@@ -110,12 +110,16 @@ public class RequestHandler {
 
                 yield new SearchByTitleRequest(title);
             }
+            case SHUTDOWN -> {
+                yield new ShutdownRequest();
+            }
             case CLEANUP -> {
                 yield new CleanupRequest();
             }
             case IMPORT_FROM_CHROME -> {
                 yield new ImportFromChromeRequest();
             }
+            // default -> throw new CommandParseException("Couldn't get command type");
         };
     }
 
@@ -135,6 +139,7 @@ public class RequestHandler {
             case "LIST_BY_GROUP"      -> ListByGroupRequest.class;
             case "SEARCH_BY_TAGS"     -> SearchByTagsRequest.class;
             case "SEARCH_BY_TITLE"    -> SearchByTitleRequest.class;
+            case "SHUTDOWN"           -> ShutdownRequest.class;
             case "CLEANUP"            -> CleanupRequest.class;
             case "IMPORT_FROM_CHROME" -> ImportFromChromeRequest.class;
             // @formatter:on
@@ -159,11 +164,12 @@ public class RequestHandler {
 
                 try {
                     userManager.addUser(
-                            new DefaultUser(
+                            new User(
                                     registerRequest.getUsername(),
-                                    registerRequest.getHashedPassword()));
+                                    registerRequest.getHashedPassword(),
+                                    registerRequest.getSalt()));
                 } catch (DuplicateUserException e) {
-                    yield e.toString();
+                    yield e.getMessage();
                 }
 
                 yield String.format(
@@ -182,9 +188,9 @@ public class RequestHandler {
                     clientRequestHandler.setUser(
                             userManager.getUser(
                                     loginRequest.getUsername(),
-                                    loginRequest.getHashedPassword()));
+                                    loginRequest.getPassword()));
                 } catch (NoSuchUserException | WrongPasswordException e) {
-                    yield e.toString();
+                    yield e.getMessage();
                 }
 
                 yield String.format(
@@ -208,11 +214,11 @@ public class RequestHandler {
                 }
 
                 try {
-                    userManager.getUserBookmarksStorage(user)
+                    userManager.getUserBookmarksStorage(user.getUsername())
                             .addGroup(
                                     newGroupRequest.getGroupName());
                 } catch (NoSuchUserException | DuplicateGroupException e) {
-                    yield e.toString();
+                    yield e.getMessage();
                 }
 
                 yield String.format(
@@ -226,13 +232,13 @@ public class RequestHandler {
                 }
 
                 try {
-                    userManager.getUserBookmarksStorage(user)
+                    userManager.getUserBookmarksStorage(user.getUsername())
                             .addBookmark(
                                     addToRequest.getGroupName(),
                                     addToRequest.getUrl(),
                                     addToRequest.isShorten());
-                } catch (NoSuchUserException | WebpageFetchException e) {
-                    yield e.toString();
+                } catch (NoSuchUserException | WebpageFetchException | BitlyException | NoSuchGroupException e) {
+                    yield e.getMessage();
                 }
 
                 yield String.format(
@@ -246,12 +252,12 @@ public class RequestHandler {
                 }
 
                 try {
-                    userManager.getUserBookmarksStorage(user)
+                    userManager.getUserBookmarksStorage(user.getUsername())
                             .removeBookmark(
                                     removeFromRequest.getGroupName(),
                                     removeFromRequest.getUrl());
                 } catch (NoSuchUserException | NoSuchGroupException e) {
-                    yield e.toString();
+                    yield e.getMessage();
                 }
 
                 yield String.format(
@@ -267,14 +273,14 @@ public class RequestHandler {
                 String bookmarks;
 
                 try {
-                    bookmarks = userManager.getUserBookmarksStorage(user)
+                    bookmarks = userManager.getUserBookmarksStorage(user.getUsername())
                             .listBookmarks()
                             .stream()
                             .map(Bookmark::toString)
                             .collect(Collectors.joining(
                                     System.lineSeparator()));
                 } catch (NoSuchUserException e) {
-                    yield e.toString();
+                    yield e.getMessage();
                 }
 
                 yield String.format("Here is the list of all bookmarks:%s%s",
@@ -291,14 +297,14 @@ public class RequestHandler {
                 String bookmarks;
 
                 try {
-                    bookmarks = userManager.getUserBookmarksStorage(user)
+                    bookmarks = userManager.getUserBookmarksStorage(user.getUsername())
                             .listBookmarksByGroup(listByGroupRequest.getGroupName())
                             .stream()
                             .map(Bookmark::toString)
                             .collect(Collectors.joining(
                                     System.lineSeparator()));
                 } catch (NoSuchUserException e) {
-                    yield e.toString();
+                    yield e.getMessage();
                 }
 
                 yield String.format("Here is the list of the selected bookmarks:%s%s",
@@ -315,13 +321,13 @@ public class RequestHandler {
                 String urls;
 
                 try {
-                    urls = userManager.getUserBookmarksStorage(user)
+                    urls = userManager.getUserBookmarksStorage(user.getUsername())
                             .searchByTags(searchByTagsRequest.getTags())
                             .stream()
                             .collect(Collectors.joining(
                                     System.lineSeparator()));
                 } catch (NoSuchUserException e) {
-                    yield e.toString();
+                    yield e.getMessage();
                 }
 
                 yield String.format("Here is the list of the selected bookmarks:%s%s",
@@ -337,18 +343,27 @@ public class RequestHandler {
                 String urls;
 
                 try {
-                    urls = userManager.getUserBookmarksStorage(user)
+                    urls = userManager.getUserBookmarksStorage(user.getUsername())
                             .searchByTitle(searchByTitleRequest.getTitle())
                             .stream()
                             .collect(Collectors.joining(
                                     System.lineSeparator()));
                 } catch (NoSuchUserException e) {
-                    yield e.toString();
+                    yield e.getMessage();
                 }
 
                 yield String.format("Here is the list of the URLs of the selected bookmarks:%s%s",
                         System.lineSeparator(),
                         urls);
+            }
+            case ShutdownRequest shutdownRequest -> {
+                // try {
+                //     ServerTask.stop();
+                // } catch (BackupException | IOException e) {
+                //     e.printStackTrace();
+                // }
+
+                yield "Server shut down (NOPE)";
             }
             case CleanupRequest cleanupRequest -> {
                 // Not logged in
@@ -363,7 +378,7 @@ public class RequestHandler {
             case ImportFromChromeRequest importFromChromeRequest -> {
                 // Not logged in
                 if (user == null) {
-                    yield "Cannot issue importing from chrome, you need to log in first";
+                    yield "Cannot issue an import from chrome, you need to log in first";
                 }
 
                 // TODO: importFromChromeRequest

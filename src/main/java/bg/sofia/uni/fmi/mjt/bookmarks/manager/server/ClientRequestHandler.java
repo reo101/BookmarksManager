@@ -6,21 +6,19 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 
-import com.google.gson.Gson;
-
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.command.RequestHandler;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.command.requests.Request;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.exceptions.ResponseParseException;
+import bg.sofia.uni.fmi.mjt.bookmarks.manager.server.Server.ServerTask;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.user.User;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.user.UserManager;
+import bg.sofia.uni.fmi.mjt.bookmarks.manager.utilities.Utilities;
 
 /**
  * ClientRequestHandler
  */
 
 public class ClientRequestHandler implements Runnable {
-    private static final Gson GSON = new Gson();
-
     private Socket socket;
     private User user;
     private UserManager userManager;
@@ -45,18 +43,18 @@ public class ClientRequestHandler implements Runnable {
                 try {
                     request = RequestHandler.parseJson(inputLine);
                 } catch (ResponseParseException e) {
-                    // TODO: handle exception
-                    e.printStackTrace();
-                    throw new NullPointerException();
+                    response = e.getMessage();
+                    out.println(response);
+                    continue;
+                }
+
+                if (!ServerTask.isRunning()) {
+                    out.print("WARNING! Server has shut down, any further changes won't be saved!"
+                            + Utilities.NEWLINE_PLACEHOLDER);
                 }
 
                 response = RequestHandler.executeRequest(request, this);
-
                 out.println(response);
-
-                // if (response.getStatus().equals("DISCONNECT")) {
-                //     break;
-                // }
             }
 
         } catch (IOException e) {

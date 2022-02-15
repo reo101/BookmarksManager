@@ -8,14 +8,14 @@ import bg.sofia.uni.fmi.mjt.bookmarks.manager.exceptions.DuplicateUserException;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.exceptions.NoSuchUserException;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.exceptions.WrongPasswordException;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.storage.BookmarksStorage;
-import bg.sofia.uni.fmi.mjt.bookmarks.manager.storage.DefaultBookmarksStorage;
+import bg.sofia.uni.fmi.mjt.bookmarks.manager.utils.PasswordUtils;
 
 /**
  * DefaultUserManager
  */
 public class DefaultUserManager implements UserManager {
     private Map<String, User> users;
-    private Map<User, BookmarksStorage> storage;
+    private Map<String, BookmarksStorage> storage;
 
     public DefaultUserManager() {
         this.users = new HashMap<>();
@@ -35,13 +35,13 @@ public class DefaultUserManager implements UserManager {
         }
 
         this.users.put(user.getUsername(), user);
-        this.storage.put(user, new DefaultBookmarksStorage(user));
+        this.storage.put(user.getUsername(), new BookmarksStorage(user));
     }
 
     @Override
-    public User getUser(String username, String hashedPassword)
+    public User getUser(String username, String password)
             throws NoSuchUserException, WrongPasswordException {
-        Objects.requireNonNull(username, hashedPassword);
+        Objects.requireNonNull(username, password);
 
         if (!this.users.containsKey(username)) {
             throw new NoSuchUserException(
@@ -52,7 +52,7 @@ public class DefaultUserManager implements UserManager {
 
         User user = this.users.get(username);
 
-        if (!user.login(hashedPassword)) {
+        if (!PasswordUtils.verifyUserPassword(password, user.getHashedPassword(), user.getSalt())) {
             throw new WrongPasswordException(
                     String.format(
                             "Wrong password for username %s",
@@ -63,15 +63,15 @@ public class DefaultUserManager implements UserManager {
     }
 
     @Override
-    public BookmarksStorage getUserBookmarksStorage(User user) throws NoSuchUserException {
-        Objects.requireNonNull(user);
+    public BookmarksStorage getUserBookmarksStorage(String username) throws NoSuchUserException {
+        Objects.requireNonNull(username);
 
-        if (!this.storage.containsKey(user)) {
+        if (!this.storage.containsKey(username)) {
             throw new NoSuchUserException(
                     String.format("User with username %s does not exist",
-                            user.getUsername()));
+                            username));
         }
 
-        return this.storage.get(user);
+        return this.storage.get(username);
     }
 }

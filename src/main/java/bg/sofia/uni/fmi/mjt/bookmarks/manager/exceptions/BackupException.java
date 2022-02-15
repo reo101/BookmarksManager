@@ -3,31 +3,31 @@ package bg.sofia.uni.fmi.mjt.bookmarks.manager.exceptions;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.logging.ServerLogger;
 
 /**
- * DuplicateUserException
+ * BackupException
  */
-public class DuplicateUserException extends ApplicationException {
+public class BackupException extends ApplicationException {
 
-    public DuplicateUserException() {
+    public BackupException() {
         super(ServerLogger.getInstance());
     }
 
-    public DuplicateUserException(
+    public BackupException(
             String message) {
         super(ServerLogger.getInstance(), message);
     }
 
-    public DuplicateUserException(
+    public BackupException(
             Throwable cause) {
         super(ServerLogger.getInstance(), cause);
     }
 
-    public DuplicateUserException(
+    public BackupException(
             String message,
             Throwable cause) {
         super(ServerLogger.getInstance(), message, cause);
     }
 
-    public DuplicateUserException(
+    public BackupException(
             String message,
             Throwable cause,
             boolean enableSuppression,

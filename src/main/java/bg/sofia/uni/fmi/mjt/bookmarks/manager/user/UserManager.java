@@ -21,10 +21,10 @@ public interface UserManager {
             throws DuplicateUserException;
 
     /**
-     * Get user by username and hashed password
+     * Get user by username and password
      *
      * @param username
-     * @param hashedPassword
+     * @param password
      *
      * @return The user
      *
@@ -33,19 +33,19 @@ public interface UserManager {
      * @throws WrongPasswordException if there is a user in the database with the
      *                                specified name but the password is wrong
      */
-    public User getUser(String username, String hashedPassword)
+    public User getUser(String username, String password)
             throws NoSuchUserException, WrongPasswordException;
 
     /**
      * Get {@link BookmarksStorage} associated with a certain user
      *
-     * @param user The user
+     * @param username The username for that user
      *
      * @return The {@link BookmarksStorage}
      *
      * @throws NoSuchUserException if there is no user in the database with the
      *                             specified username
      */
-    public BookmarksStorage getUserBookmarksStorage(User user)
+    public BookmarksStorage getUserBookmarksStorage(String username)
             throws NoSuchUserException;
 }

@@ -1,7 +1,6 @@
 package bg.sofia.uni.fmi.mjt.bookmarks.manager.command;
 
 import java.util.Arrays;
-import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -11,7 +10,6 @@ import bg.sofia.uni.fmi.mjt.bookmarks.manager.exceptions.CommandParseException;
  * Command
  */
 public class Command {
-    // TODO: this VV
     private static String urlRegex = "https?://[-a-zA-Z0-9+&@#/%?=~_|!:,.;]*[-a-zA-Z0-9+&@#/%=~_|]";
 
     public static enum Type {
@@ -26,6 +24,7 @@ public class Command {
         LIST_BY_GROUP      ("^list\s--group-name\s(\\w+)$"),
         SEARCH_BY_TAGS     ("^search\s--tags\s(\\w+(?:\s\\w+)+)$"),
         SEARCH_BY_TITLE    ("^search\s--title\s(\\w+)$"),
+        SHUTDOWN           ("^shutdown$"),
         CLEANUP            ("^cleanup$"),
         IMPORT_FROM_CHROME ("^import-from-chrome$");
         // @formatter:on
@@ -48,7 +47,12 @@ public class Command {
             return Arrays.stream(Type.values())
                     .filter((Type type) -> input.matches(type.regex))
                     .findFirst()
-                    .orElseThrow(CommandParseException::new);
+                    .orElseThrow(() -> {
+                        return new CommandParseException(
+                                String.format(
+                                        "Couldn't parse command '%s'",
+                                        input));
+                    });
         }
     }
 }

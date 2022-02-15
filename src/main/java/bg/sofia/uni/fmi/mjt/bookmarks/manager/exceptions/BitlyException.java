@@ -3,31 +3,31 @@ package bg.sofia.uni.fmi.mjt.bookmarks.manager.exceptions;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.logging.ServerLogger;
 
 /**
- * DuplicateUserException
+ * WebpageFetchException
  */
-public class DuplicateUserException extends ApplicationException {
+public class BitlyException extends ApplicationException {
 
-    public DuplicateUserException() {
+    public BitlyException() {
         super(ServerLogger.getInstance());
     }
 
-    public DuplicateUserException(
+    public BitlyException(
             String message) {
         super(ServerLogger.getInstance(), message);
     }
 
-    public DuplicateUserException(
+    public BitlyException(
             Throwable cause) {
         super(ServerLogger.getInstance(), cause);
     }
 
-    public DuplicateUserException(
+    public BitlyException(
             String message,
             Throwable cause) {
         super(ServerLogger.getInstance(), message, cause);
     }
 
-    public DuplicateUserException(
+    public BitlyException(
             String message,
             Throwable cause,
             boolean enableSuppression,
