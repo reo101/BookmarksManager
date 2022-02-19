@@ -32,28 +32,9 @@ public abstract class ApplicationException extends Exception {
 
     public ApplicationException(
             Logger logger,
-            Throwable cause) {
-        super(cause);
-        this.logger = logger;
-        this.log();
-    }
-
-    public ApplicationException(
-            Logger logger,
             String message,
             Throwable cause) {
         super(message, cause);
-        this.logger = logger;
-        this.log();
-    }
-
-    public ApplicationException(
-            Logger logger,
-            String message,
-            Throwable cause,
-            boolean enableSuppression,
-            boolean writableStackTrace) {
-        super(message, cause, enableSuppression, writableStackTrace);
         this.logger = logger;
         this.log();
     }

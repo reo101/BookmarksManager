@@ -23,7 +23,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.google.gson.Gson;
-import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
 
 import org.jsoup.Jsoup;
@@ -33,6 +32,7 @@ import bg.sofia.uni.fmi.mjt.bookmarks.manager.bookmarks.Bookmark;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.exceptions.APIKeyLoadException;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.exceptions.BitlyException;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.exceptions.DuplicateGroupException;
+import bg.sofia.uni.fmi.mjt.bookmarks.manager.exceptions.NoSuchBookmarkException;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.exceptions.NoSuchGroupException;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.exceptions.WebpageFetchException;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.user.User;
@@ -61,7 +61,7 @@ public class BookmarksStorage {
     private static final String BITLY_PATH = "/v4/shorten";
     private static final String BITLY_LONG_URL = "long_url";
 
-    private static int MAX_TAGS_PER_BOOKMARK = 25;
+    private static final int MAX_TAGS_PER_BOOKMARK = 25;
 
     private static final Gson GSON = new Gson();
 
@@ -86,10 +86,10 @@ public class BookmarksStorage {
 
     private static class BitlyResponse {
         @SerializedName("link")
-        private String shortennedUrl;
+        private String shortenedUrl;
 
-        public String getShortennedUrl() {
-            return this.shortennedUrl;
+        public String getShortenedUrl() {
+            return this.shortenedUrl;
         }
     }
 
@@ -113,7 +113,7 @@ public class BookmarksStorage {
         } catch (IOException e) {
             throw new WebpageFetchException(
                     String.format(
-                            "Coudn't fetch webpage '%s'",
+                            "Couldn't fetch webpage '%s'",
                             url),
                     e);
         }
@@ -147,10 +147,6 @@ public class BookmarksStorage {
                         BITLY_SCHEME,
                         BITLY_AUTHORITY,
                         BITLY_PATH,
-                        // String.format(
-                        // "%s=%s",
-                        // BITLY_LONG_URL,
-                        // url),
                         null);
             } catch (URISyntaxException e) {
                 throw new WebpageFetchException("Couldn't shorten URL, please use full length", e);
@@ -179,11 +175,11 @@ public class BookmarksStorage {
 
             switch (httpResponse.statusCode()) {
                 case HttpURLConnection.HTTP_OK, HttpURLConnection.HTTP_CREATED -> {
-                    String shortennedUrl = GSON
+                    String shortenedUrl = GSON
                             .fromJson(httpResponse.body(), BitlyResponse.class)
-                            .getShortennedUrl();
+                            .getShortenedUrl();
 
-                    url = shortennedUrl;
+                    url = shortenedUrl;
                 }
                 default -> {
                     System.err.println(httpResponse.statusCode());
@@ -193,12 +189,14 @@ public class BookmarksStorage {
             }
         }
 
-        this.bookmarks
-                .get(groupName)
-                .add(new Bookmark(
-                        title,
-                        url,
-                        tags));
+        synchronized (this) {
+            this.bookmarks
+                    .get(groupName)
+                    .add(new Bookmark(
+                            title,
+                            url,
+                            tags));
+        }
     }
 
     public synchronized void addGroup(String groupName) throws DuplicateGroupException {
@@ -213,21 +211,27 @@ public class BookmarksStorage {
     }
 
     public synchronized void removeBookmark(String groupName, String bookmarkUrl)
-            throws NoSuchGroupException {
-        if (this.bookmarks.containsKey(groupName)) {
+            throws NoSuchGroupException, NoSuchBookmarkException {
+        if (!this.bookmarks.containsKey(groupName)) {
             throw new NoSuchGroupException(
                     String.format(
                             "There isn't a group named %s",
                             groupName));
         }
 
-        // if (this.bookmarks.get(groupName).contains)
+        Bookmark forRemoval = this.bookmarks
+                .get(groupName).stream()
+                .filter((bookmark) -> bookmark.getUrl().equalsIgnoreCase(bookmarkUrl))
+                .findFirst()
+                .orElseThrow(() -> {
+                    return new NoSuchBookmarkException(
+                            String.format(
+                                    "There is no bookmark with URL '%s' in the group '%s'",
+                                    bookmarkUrl,
+                                    groupName));
+                });
 
-        // this.bookmarks
-        // .get(groupName)
-        // .remove(new Bookmark(bookmarkName, bookmarkUrl));
-
-        // TODO: takovata
+        this.bookmarks.get(groupName).remove(forRemoval);
     }
 
     public synchronized Collection<Bookmark> listBookmarks() {
@@ -253,11 +257,6 @@ public class BookmarksStorage {
     public Collection<String> searchByTags(Collection<String> tags) {
         Objects.requireNonNull(tags);
 
-        // TODO: normalize tags
-        Collection<String> normalizedTags = tags.stream()
-                // .opravi()
-                .collect(Collectors.toSet());
-
         return this.listBookmarks().stream()
                 .filter((bookmark) -> {
                     return tags.stream()
@@ -276,5 +275,28 @@ public class BookmarksStorage {
                 })
                 .map(Bookmark::getUrl)
                 .collect(Collectors.toSet());
+    }
+
+    public void cleanup() {
+        this.bookmarks.entrySet().parallelStream()
+                .forEach((entry) -> {
+                    String groupName = entry.getKey();
+                    entry.getValue().parallelStream().forEach((bookmark) -> {
+                        HttpRequest httpRequest = HttpRequest.newBuilder(URI.create(bookmark.getUrl())).build();
+
+                        HttpResponse<String> httpResponse;
+
+                        try {
+                            httpResponse = this.httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+                            if (httpResponse.statusCode() == HttpURLConnection.HTTP_NOT_FOUND) {
+                                this.removeBookmark(groupName, bookmark.getUrl());
+                            }
+                        } catch (IOException | InterruptedException e) {
+                            new WebpageFetchException(); // For logs
+                        } catch (NoSuchGroupException e) {
+                        } catch (NoSuchBookmarkException e) {
+                        }
+                    });
+                });
     }
 }

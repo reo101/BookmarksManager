@@ -3,11 +3,11 @@ package bg.sofia.uni.fmi.mjt.bookmarks.manager.exceptions;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.logging.ServerLogger;
 
 /**
- * DuplicateGroupException
+ * NoSuchGroupException
  */
-public class DuplicateGroupException extends ApplicationException {
+public class NoSuchBookmarkException extends ApplicationException {
 
-    public DuplicateGroupException(
+    public NoSuchBookmarkException(
             String message) {
         super(ServerLogger.getInstance(), message);
     }

@@ -7,7 +7,7 @@ package bg.sofia.uni.fmi.mjt.bookmarks.manager.utilities;
 public class Utilities {
     public static final String NEWLINE_PLACEHOLDER = "NEWLINE_PLACEHOLDER";
 
-    public enum ANSI {
+    public enum ANSI_CODES {
         BLACK_FOREGROUND("\u001B[30m"),
         BLACK_BACKGROUND("\u001B[40m"),
         RED_FOREGROUND("\u001B[31m"),
@@ -30,7 +30,7 @@ public class Utilities {
 
         private final String code;
 
-        ANSI(String code) {
+        ANSI_CODES(String code) {
             this.code = code;
         }
 

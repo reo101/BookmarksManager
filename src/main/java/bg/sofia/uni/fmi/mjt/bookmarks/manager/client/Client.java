@@ -63,7 +63,6 @@ public class Client {
                         response,
                         System.lineSeparator());
             }
-
         } catch (IOException e) {
             throw new RuntimeException("There is a problem with the network communication", e);
         }

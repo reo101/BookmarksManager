@@ -6,7 +6,7 @@ import java.util.stream.Collectors;
 
 import com.google.gson.annotations.Expose;
 
-import static bg.sofia.uni.fmi.mjt.bookmarks.manager.utilities.Utilities.ANSI.*;
+import static bg.sofia.uni.fmi.mjt.bookmarks.manager.utilities.Utilities.ANSI_CODES.*;
 
 /**
  * Bookmark

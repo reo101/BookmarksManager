@@ -17,21 +17,8 @@ public class WebpageFetchException extends ApplicationException {
     }
 
     public WebpageFetchException(
-            Throwable cause) {
-        super(ServerLogger.getInstance(), cause);
-    }
-
-    public WebpageFetchException(
             String message,
             Throwable cause) {
         super(ServerLogger.getInstance(), message, cause);
-    }
-
-    public WebpageFetchException(
-            String message,
-            Throwable cause,
-            boolean enableSuppression,
-            boolean writableStackTrace) {
-        super(ServerLogger.getInstance(), message, cause, enableSuppression, writableStackTrace);
     }
 }

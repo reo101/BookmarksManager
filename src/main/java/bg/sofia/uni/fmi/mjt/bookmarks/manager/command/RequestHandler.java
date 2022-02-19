@@ -1,6 +1,5 @@
 package bg.sofia.uni.fmi.mjt.bookmarks.manager.command;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -25,11 +24,11 @@ import bg.sofia.uni.fmi.mjt.bookmarks.manager.command.requests.RemoveFromRequest
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.command.requests.Request;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.command.requests.SearchByTagsRequest;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.command.requests.SearchByTitleRequest;
-import bg.sofia.uni.fmi.mjt.bookmarks.manager.command.requests.ShutdownRequest;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.exceptions.BitlyException;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.exceptions.CommandParseException;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.exceptions.DuplicateGroupException;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.exceptions.DuplicateUserException;
+import bg.sofia.uni.fmi.mjt.bookmarks.manager.exceptions.NoSuchBookmarkException;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.exceptions.NoSuchGroupException;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.exceptions.ResponseParseException;
 import bg.sofia.uni.fmi.mjt.bookmarks.manager.exceptions.WebpageFetchException;
@@ -110,16 +109,12 @@ public class RequestHandler {
 
                 yield new SearchByTitleRequest(title);
             }
-            case SHUTDOWN -> {
-                yield new ShutdownRequest();
-            }
             case CLEANUP -> {
                 yield new CleanupRequest();
             }
             case IMPORT_FROM_CHROME -> {
                 yield new ImportFromChromeRequest();
             }
-            // default -> throw new CommandParseException("Couldn't get command type");
         };
     }
 
@@ -139,7 +134,6 @@ public class RequestHandler {
             case "LIST_BY_GROUP"      -> ListByGroupRequest.class;
             case "SEARCH_BY_TAGS"     -> SearchByTagsRequest.class;
             case "SEARCH_BY_TITLE"    -> SearchByTitleRequest.class;
-            case "SHUTDOWN"           -> ShutdownRequest.class;
             case "CLEANUP"            -> CleanupRequest.class;
             case "IMPORT_FROM_CHROME" -> ImportFromChromeRequest.class;
             // @formatter:on
@@ -200,7 +194,7 @@ public class RequestHandler {
             case LogoutRequest logoutRequest -> {
                 // Not logged in
                 if (user == null) {
-                    yield "Cannot logout, you're not logged in";
+                    yield "Cannot logout, you need to log in first";
                 }
 
                 clientRequestHandler.setUser(null);
@@ -256,7 +250,7 @@ public class RequestHandler {
                             .removeBookmark(
                                     removeFromRequest.getGroupName(),
                                     removeFromRequest.getUrl());
-                } catch (NoSuchUserException | NoSuchGroupException e) {
+                } catch (NoSuchUserException | NoSuchGroupException | NoSuchBookmarkException e) {
                     yield e.getMessage();
                 }
 
@@ -283,7 +277,7 @@ public class RequestHandler {
                     yield e.getMessage();
                 }
 
-                yield String.format("Here is the list of all bookmarks:%s%s",
+                yield String.format("Success. Here is the list of all bookmarks:%s%s",
                         System.lineSeparator(),
                         bookmarks)
                         .replaceAll(System.lineSeparator(), Utilities.NEWLINE_PLACEHOLDER);
@@ -307,7 +301,7 @@ public class RequestHandler {
                     yield e.getMessage();
                 }
 
-                yield String.format("Here is the list of the selected bookmarks:%s%s",
+                yield String.format("Success. Here is the list of the selected bookmarks:%s%s",
                         System.lineSeparator(),
                         bookmarks)
                         .replaceAll(System.lineSeparator(), "GAGURI");
@@ -330,7 +324,7 @@ public class RequestHandler {
                     yield e.getMessage();
                 }
 
-                yield String.format("Here is the list of the selected bookmarks:%s%s",
+                yield String.format("Success. Here is the list of the selected bookmarks:%s%s",
                         System.lineSeparator(),
                         urls);
             }
@@ -352,18 +346,9 @@ public class RequestHandler {
                     yield e.getMessage();
                 }
 
-                yield String.format("Here is the list of the URLs of the selected bookmarks:%s%s",
+                yield String.format("Success. Here is the list of the URLs of the selected bookmarks:%s%s",
                         System.lineSeparator(),
                         urls);
-            }
-            case ShutdownRequest shutdownRequest -> {
-                // try {
-                //     ServerTask.stop();
-                // } catch (BackupException | IOException e) {
-                //     e.printStackTrace();
-                // }
-
-                yield "Server shut down (NOPE)";
             }
             case CleanupRequest cleanupRequest -> {
                 // Not logged in
@@ -371,9 +356,14 @@ public class RequestHandler {
                     yield "Cannot issue a cleanup, you need to log in first";
                 }
 
-                // TODO: cleanupRequest
+                try {
+                    userManager.getUserBookmarksStorage(user.getUsername())
+                            .cleanup();
+                } catch (NoSuchUserException e) {
+                    yield e.getMessage();
+                }
 
-                yield "Not yet implemented";
+                yield "Success, cleaned up";
             }
             case ImportFromChromeRequest importFromChromeRequest -> {
                 // Not logged in
@@ -389,20 +379,3 @@ public class RequestHandler {
         };
     }
 }
-
-/*
- * ArrayList<Object> result = new ArrayList<>();
- *
- * Gson g = new Gson();
- *
- * JsonArray e = new JsonParser().parse(json).getAsJsonArray();
- *
- * for(int i = 0; i < e.size(); i++){
- * JsonObject o = e.get(i).getAsJsonObject();
- * if (o.get("code") != null)
- * result.add(g.fromJson(o, Class1.class));
- * else if (o.get("id") != null)
- * result.add(g.fromJson(o, Class2.class));
- * else result.add(g.fromJson(o, Object.class));
- * }
- */

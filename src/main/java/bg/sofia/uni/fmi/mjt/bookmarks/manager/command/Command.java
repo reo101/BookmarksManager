@@ -24,7 +24,6 @@ public class Command {
         LIST_BY_GROUP      ("^list\s--group-name\s(\\w+)$"),
         SEARCH_BY_TAGS     ("^search\s--tags\s(\\w+(?:\s\\w+)+)$"),
         SEARCH_BY_TITLE    ("^search\s--title\s(\\w+)$"),
-        SHUTDOWN           ("^shutdown$"),
         CLEANUP            ("^cleanup$"),
         IMPORT_FROM_CHROME ("^import-from-chrome$");
         // @formatter:on

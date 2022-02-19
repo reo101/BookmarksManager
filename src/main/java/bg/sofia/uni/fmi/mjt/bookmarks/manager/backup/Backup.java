@@ -19,13 +19,18 @@ import bg.sofia.uni.fmi.mjt.bookmarks.manager.user.UserManager;
  */
 public class Backup {
     public static final Path BACKUP_DIR = Path.of("bookmarks");
-    // public static final Gson GSON = new GsonBuilder()
-    //         .excludeFieldsWithoutExposeAnnotation()
-    //         .create();
     public static final Gson GSON = new Gson();
 
     public static void backup(DefaultUserManager userManager) throws BackupException {
         Path backupJson = BACKUP_DIR.resolve("usermanager.backup.json");
+
+        if (!Files.exists(BACKUP_DIR)) {
+            try {
+                Files.createDirectory(BACKUP_DIR);
+            } catch (IOException e) {
+                throw new BackupException("Couldn't write backup directory", e);
+            }
+        }
 
         try (BufferedWriter bw = Files.newBufferedWriter(backupJson)) {
             Type token = TypeToken.getParameterized(DefaultUserManager.class).getType();
@@ -43,28 +48,4 @@ public class Backup {
             throw new BackupException("Couldn't load backup", e);
         }
     }
-
-    // public static void backup(DefaultBookmarksStorage bookmarksStorage) {
-    // Path userBackup = BACKUP_DIR.resolve(String.format("%s.json",
-    // bookmarksStorage.getUser().getUsername()));
-    //
-    // try (BufferedWriter bw = Files.newBufferedWriter(userBackup)) {
-    // Type token =
-    // TypeToken.getParameterized(DefaultBookmarksStorage.class).getType();
-    //
-    // GSON.toJson(bookmarksStorage, token, bw);
-    // } catch (IOException e) {
-    // e.printStackTrace();
-    // throw new NullPointerException();
-    // }
-    // }
-    //
-    // public static DefaultBookmarksStorage load(Path userBackup) {
-    // try (BufferedReader br = Files.newBufferedReader(userBackup)) {
-    // return GSON.fromJson(br, DefaultBookmarksStorage.class);
-    // } catch (IOException e) {
-    // e.printStackTrace();
-    // throw new NullPointerException();
-    // }
-    // }
 }
